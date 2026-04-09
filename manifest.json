@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Sheets Filter Pro",
+  "version": "1.1",
+  "description": "Lọc và highlight dữ liệu trên Google Sheets theo nhiều điều kiện",
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "clipboardRead",
+    "sidePanel",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://docs.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/spreadsheets/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sheets Filter Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f0f11;
+      --surface: #17171b;
+      --surface2:#1e1e24;
+      --border:  #2a2a34;
+      --accent:  #7c6af7;
+      --accent2: #4ade80;
+      --accent3: #f97316;
+      --text:    #e4e4f0;
+      --muted:   #64647a;
+      --danger:  #f43f5e;
+      --radius:  10px;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    /* ── Layout shell ── */
+    #shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100%;
+    }
+
+    /* ── Header ── */
+    .header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      background: linear-gradient(180deg, #1b1830 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 30px; height: 30px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .header-title { font-size: 13px; font-weight: 600; letter-spacing: -0.2px; }
+    .header-sub   { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); margin-left: auto; flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.active { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+
+    /* ── Controls toggle bar ── */
+    #controls-toggle {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+    #controls-toggle:hover { background: #222228; }
+    .toggle-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.9px;
+      color: var(--muted);
+    }
+    .toggle-arrow {
+      font-size: 11px; color: var(--muted);
+      transition: transform 0.2s;
+    }
+    #controls-toggle.collapsed .toggle-arrow { transform: rotate(-90deg); }
+
+    /* ── Controls panel (collapsible) ── */
+    #controls {
+      flex-shrink: 0;
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+      transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s;
+      max-height: 600px;
+      opacity: 1;
+    }
+    #controls.collapsed {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      border-bottom: none;
+    }
+
+    /* Color row */
+    .color-row {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 7px 10px;
+    }
+    .color-label { font-size: 11px; color: var(--muted); flex: 1; }
+    .color-swatches  { display: flex; gap: 5px; }
+    .swatch {
+      width: 19px; height: 19px; border-radius: 5px; cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .swatch:hover { transform: scale(1.18); }
+    .swatch.selected { border-color: #fff; }
+
+    /* Section label */
+    .section-label {
+      font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted);
+    }
+
+    /* Condition cards */
+    #conditions-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .condition-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .condition-row {
+      display: grid;
+      grid-template-columns: 46px 1fr 1fr 22px;
+      gap: 5px;
+      align-items: center;
+    }
+
+    select, input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 5px 7px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+    select option { background: #1a1a24; }
+
+    .logic-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 1px;
+      color: var(--accent);
+      padding: 2px 6px;
+      background: rgba(124,106,247,0.12);
+      border-radius: 4px;
+      cursor: pointer; user-select: none;
+      margin-bottom: 5px;
+      display: inline-block;
+      transition: background 0.15s;
+    }
+    .logic-badge.or { color: var(--accent3); background: rgba(249,115,22,0.12); }
+    .logic-badge:hover { background: rgba(124,106,247,0.22); }
+
+    .remove-btn {
+      width: 22px; height: 22px;
+      background: none; border: none;
+      color: var(--muted); cursor: pointer; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; transition: color 0.15s, background 0.15s;
+    }
+    .remove-btn:hover { color: var(--danger); background: rgba(244,63,94,0.1); }
+
+    /* Action buttons */
+    .btn-row { display: flex; gap: 7px; }
+    .btn {
+      flex: 1; padding: 8px 10px;
+      border-radius: var(--radius); border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600;
+      transition: all 0.18s;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .btn-add {
+      background: rgba(124,106,247,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(124,106,247,0.28);
+    }
+    .btn-add:hover { background: rgba(124,106,247,0.2); }
+    .btn-apply {
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      color: white;
+      box-shadow: 0 3px 10px rgba(124,106,247,0.3);
+    }
+    .btn-apply:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(124,106,247,0.42); }
+    .btn-apply:active { transform: none; }
+    .btn-clear {
+      flex: 0 0 auto; padding: 8px 12px;
+      background: rgba(244,63,94,0.07);
+      color: var(--danger);
+      border: 1px solid rgba(244,63,94,0.2);
+    }
+    .btn-clear:hover { background: rgba(244,63,94,0.14); }
+
+    kbd {
+      background: var(--border); border-radius: 3px;
+      padding: 1px 5px;
+      font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text);
+    }
+    .apply-hint {
+      font-size: 10px; color: var(--muted);
+      text-align: center; line-height: 1.5;
+    }
+
+    /* ── Results panel (grows to fill remaining height) ── */
+    #results {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* Stats bar — pinned at bottom of results */
+    .stats-bar {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 0;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .stats-bar.visible { opacity: 1; pointer-events: auto; }
+    .stat { text-align: center; flex: 1; padding: 8px 0; }
+    .stat-num { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; color: var(--accent2); }
+    .stat-label { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .stat-divider { width: 1px; height: 32px; background: var(--border); flex-shrink: 0; }
+
+    /* Ranked results — scrollable middle area */
+    #rankedResults {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .ranked-header {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ranked-header-label {
+      font-size: 11px; font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.1px;
+    }
+    .ranked-hint {
+      font-size: 10px; color: var(--muted);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .ranked-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .ranked-body::-webkit-scrollbar { width: 4px; }
+    .ranked-body::-webkit-scrollbar-track { background: transparent; }
+    .ranked-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .ranked-row {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+      position: relative;
+    }
+    .ranked-row:last-child { border-bottom: none; }
+    .ranked-row:hover { background: rgba(124,106,247,0.08); }
+    .ranked-row:hover .goto-icon { opacity: 1; }
+
+    .ranked-meta {
+      display: flex; align-items: center; gap: 7px;
+      margin-bottom: 6px;
+    }
+    .ranked-rownum {
+      font-family: 'DM Mono', monospace; font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(124,106,247,0.13);
+      padding: 2px 9px; border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+    .ranked-score {
+      font-family: 'DM Mono', monospace; font-size: 10px;
+      color: var(--muted);
+    }
+    .goto-icon {
+      margin-left: auto;
+      font-size: 13px; color: var(--accent);
+      opacity: 0; transition: opacity 0.12s;
+    }
+    .ranked-cells {
+      font-size: 13px; color: #d0d0e8;
+      line-height: 1.7;
+      word-break: break-word;
+    }
+    .ranked-col-label {
+      font-family: 'DM Mono', monospace; font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .ranked-cell mark {
+      background: rgba(250,204,21,0.3);
+      color: var(--text);
+      border-radius: 2px; padding: 0 2px;
+    }
+
+    /* Empty state */
+    .results-empty {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 8px;
+      color: var(--muted); font-size: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+    .results-empty-icon { font-size: 28px; }
+
+    /* Not on Sheets */
+    .not-sheets {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 10px;
+      padding: 30px 20px; text-align: center;
+    }
+    .not-sheets-icon { font-size: 32px; }
+    .not-sheets strong { color: var(--text); font-size: 13px; }
+    .not-sheets p { color: var(--muted); font-size: 11px; line-height: 1.6; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 14px; left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: #1e1e2c; border: 1px solid var(--border);
+      border-radius: 20px; padding: 7px 16px;
+      font-size: 11px; color: var(--text);
+      opacity: 0; transition: all 0.22s;
+      pointer-events: none; white-space: nowrap; z-index: 99;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div id="shell">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">⚡</div>
+    <div>
+      <div class="header-title">Sheets Filter Pro</div>
+      <div class="header-sub">Highlight theo điều kiện</div>
+    </div>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+
+  <!-- Not on Sheets state -->
+  <div class="not-sheets" id="notSheets" style="display:none">
+    <div class="not-sheets-icon">📊</div>
+    <strong>Chưa mở Google Sheets</strong>
+    <p>Hãy mở một file Google Sheets rồi click icon extension.</p>
+  </div>
+
+  <!-- Main UI (only shown on Sheets) -->
+  <div id="mainUI" style="display:none; flex:1; flex-direction:column; overflow:hidden; min-height:0;">
+
+    <!-- Controls toggle bar -->
+    <div id="controls-toggle">
+      <span class="toggle-label">Bộ lọc</span>
+      <span class="toggle-arrow">▼</span>
+    </div>
+
+    <!-- Controls: color + conditions + buttons -->
+    <div id="controls">
+
+      <!-- Color -->
+      <div class="color-row">
+        <span class="color-label">Màu highlight</span>
+        <div class="color-swatches" id="colorSwatches">
+          <div class="swatch selected" data-color="#fef08a" style="background:#fef08a"></div>
+          <div class="swatch" data-color="#86efac" style="background:#86efac"></div>
+          <div class="swatch" data-color="#93c5fd" style="background:#93c5fd"></div>
+          <div class="swatch" data-color="#f9a8d4" style="background:#f9a8d4"></div>
+          <div class="swatch" data-color="#fca5a1" style="background:#fca5a1"></div>
+          <div class="swatch" data-color="#d8b4fe" style="background:#d8b4fe"></div>
+        </div>
+      </div>
+
+      <!-- Conditions -->
+      <div class="section-label">Điều kiện lọc</div>
+      <div id="conditions-list"></div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+        <button class="btn btn-add" id="addConditionBtn">＋ Thêm điều kiện</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-apply" id="applyBtn">▶ Áp dụng</button>
+        <button class="btn btn-clear" id="clearBtn">✕ Xóa</button>
+      </div>
+      <div class="apply-hint">Nếu sheet dùng canvas: <kbd>Ctrl+A</kbd> → <kbd>Ctrl+C</kbd> trong sheet trước</div>
+
+    </div><!-- /controls -->
+
+    <!-- Results: grows to fill remaining space -->
+    <div id="results">
+
+      <!-- Empty state (before first search) -->
+      <div class="results-empty" id="resultsEmpty">
+        <div class="results-empty-icon">🔍</div>
+        <span>Nhập điều kiện và nhấn Áp dụng</span>
+      </div>
+
+      <!-- Ranked list -->
+      <div id="rankedResults" style="display:none; flex:1; flex-direction:column; overflow:hidden; min-height:0;">
+        <div class="ranked-header">
+          <span class="ranked-header-label" id="rankedHeaderLabel">Kết quả</span>
+          <span class="ranked-hint">Click dòng → nhảy tới ↗</span>
+        </div>
+        <div class="ranked-body" id="rankedList"></div>
+      </div>
+
+      <!-- Stats pinned at bottom -->
+      <div class="stats-bar" id="statsBar">
+        <div class="stat">
+          <div class="stat-num" id="statMatched">0</div>
+          <div class="stat-label">Dòng khớp</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-num" id="statTotal">0</div>
+          <div class="stat-label">Tổng dòng</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-num" id="statCols">0</div>
+          <div class="stat-label">Cột kiểm tra</div>
+        </div>
+      </div>
+
+    </div><!-- /results -->
+
+  </div><!-- /mainUI -->
+
+</div><!-- /shell -->
+
+<div class="toast" id="toast"></div>
+<script src="popup.js"></script>
+</body>
+</html>
